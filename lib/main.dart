@@ -1,3 +1,4 @@
+import 'package:book_review_app/theme/colors.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -7,14 +8,17 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Book Review App',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        fontFamily: 'OpenSans',
         useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: primaryColor,
+          brightness: Brightness.light,
+        ),
       ),
       home: const MyHomePage(title: 'Book Review App'),
     );
