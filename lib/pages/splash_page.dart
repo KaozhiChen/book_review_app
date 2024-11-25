@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 
 class SplashPage extends StatefulWidget {
@@ -10,6 +11,7 @@ class SplashPage extends StatefulWidget {
 
 class _SplashPageState extends State<SplashPage> {
   late VideoPlayerController _controller;
+  bool _hasNavigated = false;
 
   @override
   void initState() {
@@ -23,17 +25,16 @@ class _SplashPageState extends State<SplashPage> {
 
     _controller.addListener(() {
       if (_controller.value.position == _controller.value.duration) {
-        _navigateToHome();
+        _navigateToLogin();
       }
     });
   }
 
-  // 跳转到主页面
-  void _navigateToHome() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const MyHomePage()),
-    );
+  void _navigateToLogin() {
+    if (!_hasNavigated) {
+      _hasNavigated = true;
+      context.push('/login');
+    }
   }
 
   @override
@@ -53,22 +54,6 @@ class _SplashPageState extends State<SplashPage> {
                 child: VideoPlayer(_controller),
               )
             : const CircularProgressIndicator(),
-      ),
-    );
-  }
-}
-
-class MyHomePage extends StatelessWidget {
-  const MyHomePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Book Review App'),
-      ),
-      body: const Center(
-        child: Text('Main Page Content'),
       ),
     );
   }
