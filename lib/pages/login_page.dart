@@ -1,6 +1,8 @@
 import 'package:book_review_app/theme/colors.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
 import 'sign_up_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -11,7 +13,57 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  // display sign up page
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  String? errorMessage;
+
+  // Login
+  Future<void> login() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      setState(() {
+        errorMessage = 'Please fill in all fields.';
+      });
+      return;
+    }
+
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
+
+      // check login
+      setState(() {
+        errorMessage = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Welcome, ${userCredential.user?.email}!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      // navigate to home page
+      context.go('/home');
+    } on FirebaseAuthException catch (e) {
+      // login error
+      setState(() {
+        if (e.code == 'user-not-found') {
+          errorMessage = 'No user found with this email.';
+        } else if (e.code == 'wrong-password') {
+          errorMessage = 'Incorrect password.';
+        } else {
+          errorMessage = 'Login failed. Please try again.';
+        }
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage = 'An unexpected error occurred.';
+      });
+    }
+  }
+
+  // display sign up sheet
   void _showSignUpBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -60,6 +112,19 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   const SizedBox(height: 20),
+                  // error
+                  if (errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Text(
+                        errorMessage!,
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+
                   // form
                   Container(
                     padding: const EdgeInsets.all(20),
@@ -78,6 +143,7 @@ class _LoginPageState extends State<LoginPage> {
                       children: [
                         // Email
                         TextField(
+                          controller: emailController,
                           decoration: InputDecoration(
                             labelText: 'Email',
                             prefixIcon: const Icon(Icons.mail),
@@ -89,6 +155,7 @@ class _LoginPageState extends State<LoginPage> {
                         const SizedBox(height: 20),
                         // Password
                         TextField(
+                          controller: passwordController,
                           obscureText: true,
                           decoration: InputDecoration(
                             labelText: 'Password',
@@ -99,12 +166,13 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                         const SizedBox(height: 10),
+
                         // forget password
                         Align(
                           alignment: Alignment.centerRight,
                           child: GestureDetector(
                             onTap: () {
-                              // Todo
+                              // 忘记密码逻辑 (未来可实现)
                             },
                             child: const Text(
                               'Forget Password',
@@ -121,11 +189,10 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   const SizedBox(height: 20),
+
                   // login button
                   ElevatedButton(
-                    onPressed: () {
-                      // todo
-                    },
+                    onPressed: login,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: secondaryColor,
                       padding: const EdgeInsets.symmetric(
@@ -170,15 +237,15 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 20),
-                  // Google login
+
+                  // login with Google
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       GestureDetector(
                         onTap: () {
-                          // todo
+                          // TODO:login with google
                         },
                         child: Container(
                           padding: const EdgeInsets.all(12),
@@ -202,9 +269,9 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 30),
-                  // sign up
+
+                  //sign up link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

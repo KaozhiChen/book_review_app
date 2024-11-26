@@ -1,3 +1,4 @@
+import 'package:book_review_app/pages/home_page.dart';
 import 'package:book_review_app/pages/splash_page.dart';
 import 'package:book_review_app/theme/colors.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -24,6 +25,10 @@ class MyApp extends StatelessWidget {
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: '/home',
+        builder: (context, state) => const HomePage(),
       ),
     ],
     initialLocation: '/',
