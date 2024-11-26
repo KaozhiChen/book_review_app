@@ -15,5 +15,6 @@ const Color lightGray = Color(0xFFF0F0F0); // General background
 // Text colors
 const Color textPrimary = Color(0xFF333333); // Primary text
 const Color textSecondary = Color(0xFF666666); // Secondary text or descriptions
+const Color textTertiary = Colors.white70;
 const Color textHighlight =
     Color(0xFFFFFFFF); // Text on dark or vibrant backgrounds
