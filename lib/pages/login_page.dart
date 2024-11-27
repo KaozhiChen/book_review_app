@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
+import '../services/google_auth_service.dart';
 import 'sign_up_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -16,6 +18,41 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   String? errorMessage;
+  final GoogleAuthService _googleAuthService = GoogleAuthService();
+
+  // login with google
+  void _handleGoogleSignIn() async {
+    User? user = await _googleAuthService.signInWithGoogle();
+
+    if (user != null) {
+      await saveGoogleUserToFirestore(user);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Welcome, ${user.displayName}!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      // navigate to home page
+      Navigator.pushNamed(context, '/home');
+    } else {
+      print('Google Sign-In failed or canceled.');
+    }
+  }
+
+  // save google user to firestore
+  Future<void> saveGoogleUserToFirestore(User user) async {
+    final userDoc =
+        FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+    final docSnapshot = await userDoc.get();
+
+    if (!docSnapshot.exists) {
+      await userDoc.set({
+        'uid': user.uid,
+        'email': user.email,
+      });
+    }
+  }
 
   // Login
   Future<void> login() async {
@@ -172,7 +209,7 @@ class _LoginPageState extends State<LoginPage> {
                           alignment: Alignment.centerRight,
                           child: GestureDetector(
                             onTap: () {
-                              // 忘记密码逻辑 (未来可实现)
+                              // TODO: forget password
                             },
                             child: const Text(
                               'Forget Password',
@@ -246,6 +283,7 @@ class _LoginPageState extends State<LoginPage> {
                       GestureDetector(
                         onTap: () {
                           // TODO:login with google
+                          _handleGoogleSignIn();
                         },
                         child: Container(
                           padding: const EdgeInsets.all(12),
