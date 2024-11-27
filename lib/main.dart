@@ -1,10 +1,10 @@
-import 'package:book_review_app/pages/home_page.dart';
 import 'package:book_review_app/pages/splash_page.dart';
 import 'package:book_review_app/theme/colors.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'pages/login_page.dart';
+import 'pages/main_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,8 +27,8 @@ class MyApp extends StatelessWidget {
         builder: (context, state) => const LoginPage(),
       ),
       GoRoute(
-        path: '/home',
-        builder: (context, state) => const HomePage(),
+        path: '/main',
+        builder: (context, state) => const MainPage(),
       ),
     ],
     initialLocation: '/',

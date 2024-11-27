@@ -33,8 +33,8 @@ class _LoginPageState extends State<LoginPage> {
           backgroundColor: Colors.green,
         ),
       );
-      // navigate to home page
-      Navigator.pushNamed(context, '/home');
+      // navigate to main page
+      Navigator.pushNamed(context, '/main');
     } else {
       print('Google Sign-In failed or canceled.');
     }
@@ -82,7 +82,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
       // navigate to home page
-      context.go('/home');
+      context.go('/main');
     } on FirebaseAuthException catch (e) {
       // login error
       setState(() {
