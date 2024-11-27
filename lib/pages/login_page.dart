@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
+import '../services/forget_password_service.dart';
 import '../services/google_auth_service.dart';
 import 'sign_up_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -209,7 +210,8 @@ class _LoginPageState extends State<LoginPage> {
                           alignment: Alignment.centerRight,
                           child: GestureDetector(
                             onTap: () {
-                              // TODO: forget password
+                              ForgetPasswordService.showForgetPasswordDialog(
+                                  context: context);
                             },
                             child: const Text(
                               'Forget Password',
