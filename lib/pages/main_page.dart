@@ -1,7 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:book_review_app/pages/community_page.dart';
 import 'package:book_review_app/pages/home_page.dart';
 import 'package:book_review_app/pages/profile_page.dart';
-import 'package:flutter/material.dart';
+import 'package:book_review_app/pages/recommendations_page.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -17,6 +18,7 @@ class _MainPageState extends State<MainPage> {
   final List<Widget> _pages = [
     const HomePage(),
     const CommunityPage(),
+    const RecommendationsPage(),
     const ProfilePage(),
   ];
 
@@ -31,7 +33,6 @@ class _MainPageState extends State<MainPage> {
             _currentIndex = index;
           });
         },
-        // backgroundColor: Theme.of(context).colorScheme.surface,
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
@@ -42,6 +43,11 @@ class _MainPageState extends State<MainPage> {
             icon: Icon(Icons.people_outline),
             selectedIcon: Icon(Icons.people),
             label: 'Community',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.star_outline),
+            selectedIcon: Icon(Icons.star),
+            label: 'Recommendations',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
