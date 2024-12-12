@@ -2,7 +2,6 @@ import 'package:book_review_app/theme/colors.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
 import '../models/user.dart';
 
 class SignUpPage extends StatefulWidget {
@@ -17,6 +16,35 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController =
       TextEditingController();
+  // genres
+  final List<String> genres = [
+    'Fiction',
+    'Fantasy',
+    'Science Fiction',
+    'Mystery',
+    'Romance',
+    'Horror',
+    'Biography',
+    'History',
+    'Poetry',
+    'Adventure',
+    'Children',
+    'Travel',
+    'Cooking',
+    'Religion',
+    'Art',
+    'Health',
+    'Business',
+    'Technology',
+    'Education',
+    'Drama',
+    'Philosophy',
+    'Science',
+    'Sports',
+    'Politics',
+    'Economics',
+  ];
+  final Set<String> selectedGenres = {};
 
   String? errorMessage;
 
@@ -46,6 +74,12 @@ class _SignUpPageState extends State<SignUpPage> {
       });
       return;
     }
+    if (selectedGenres.isEmpty) {
+      setState(() {
+        errorMessage = 'Please select at least one preference.';
+      });
+      return;
+    }
 
     try {
       // user sign up
@@ -56,6 +90,7 @@ class _SignUpPageState extends State<SignUpPage> {
       UserModel userModel = UserModel(
         uid: userCredential.user!.uid,
         email: userCredential.user!.email!,
+        preferences: selectedGenres.toList(),
       );
 
       // save to Firestore
@@ -166,6 +201,31 @@ class _SignUpPageState extends State<SignUpPage> {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
+            ),
+            const SizedBox(height: 24),
+            // Genre Selection
+            const Text(
+              'Please let us know Your Preferences:',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            Wrap(
+              spacing: 10,
+              children: genres.map((genre) {
+                final isSelected = selectedGenres.contains(genre);
+                return ChoiceChip(
+                  label: Text(genre),
+                  selected: isSelected,
+                  onSelected: (bool selected) {
+                    setState(() {
+                      if (selected) {
+                        selectedGenres.add(genre);
+                      } else {
+                        selectedGenres.remove(genre);
+                      }
+                    });
+                  },
+                );
+              }).toList(),
             ),
             const SizedBox(height: 24),
             // Sign Up Button
