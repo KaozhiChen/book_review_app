@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 
+import 'edit_preference_page.dart';
+
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -221,7 +223,7 @@ class _ProfilePageState extends State<ProfilePage> {
         title: const Text("Profile"),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(18.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -272,8 +274,46 @@ class _ProfilePageState extends State<ProfilePage> {
             // preference section
             const SizedBox(height: 16),
             const Divider(),
-            const Text('Preferences:',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                const Text('Preferences:',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () async {
+                    final updatedPreferences =
+                        await showModalBottomSheet<List<String>>(
+                      context: context,
+                      isScrollControlled: true,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(20.0)),
+                      ),
+                      builder: (context) {
+                        return EditPreferencePage(
+                          currentPreferences: List<String>.from(
+                              userProfile!['preferences'] ?? []),
+                        );
+                      },
+                    );
+
+                    // update preferences
+                    if (updatedPreferences != null) {
+                      setState(() {
+                        userProfile!['preferences'] = updatedPreferences;
+                      });
+                    }
+                  },
+                  child: const Text(
+                    "Edit",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: primaryColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(
               height: 8,
             ),
