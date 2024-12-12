@@ -1,8 +1,8 @@
-// import 'package:book_review_app/theme/colors.dart';
 import 'package:book_review_app/theme/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:go_router/go_router.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -116,6 +116,98 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  // change password dialog
+  void _showChangePasswordDialog() {
+    final TextEditingController oldPasswordController = TextEditingController();
+    final TextEditingController newPasswordController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Change Password"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: oldPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: "Current Password",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: newPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: "New Password",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final oldPassword = oldPasswordController.text.trim();
+                final newPassword = newPasswordController.text.trim();
+                if (oldPassword.isNotEmpty && newPassword.isNotEmpty) {
+                  await _changePassword(oldPassword, newPassword);
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text("Save"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // change password function
+  Future<void> _changePassword(String oldPassword, String newPassword) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user == null) {
+        throw Exception("User not logged in.");
+      }
+
+      // 1. Re-authenticate the user
+      final email = user.email;
+      if (email == null) {
+        throw Exception("User email not found.");
+      }
+
+      final credential = EmailAuthProvider.credential(
+        email: email,
+        password: oldPassword,
+      );
+
+      await user.reauthenticateWithCredential(credential);
+
+      // 2. Update the password
+      await user.updatePassword(newPassword);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Password updated successfully!")),
+      );
+    } catch (e) {
+      print("Error changing password: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to update password: $e")),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (userProfile == null) {
@@ -178,7 +270,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
 
             // preference section
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             const Divider(),
             const Text('Preferences:',
                 style: TextStyle(fontWeight: FontWeight.bold)),
@@ -201,11 +293,27 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 16),
 
+            // change password
+            GestureDetector(
+              onTap: () {
+                _showChangePasswordDialog();
+              },
+              child: const Text(
+                "Change Password",
+                style: TextStyle(
+                    fontSize: 16,
+                    color: primaryColor,
+                    decoration: TextDecoration.underline,
+                    decorationColor: secondaryColor),
+              ),
+            ),
+            const SizedBox(height: 16),
+
             // Logout Button
             ElevatedButton(
               onPressed: () async {
                 await FirebaseAuth.instance.signOut();
-                Navigator.pushReplacementNamed(context, "/login");
+                context.go('/login');
               },
               child: const Text("Logout"),
             ),
