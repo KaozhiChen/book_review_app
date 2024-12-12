@@ -14,30 +14,82 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   List<dynamic> books = [];
   TextEditingController searchController = TextEditingController();
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    fetchPopularBooks();
+    fetchRecommendedBooks();
   }
 
-  Future<void> fetchPopularBooks() async {
-    final response = await http.get(
-      Uri.parse("https://www.googleapis.com/books/v1/volumes?q=Fiction&maxResults=20"),
-    );
+  // get user preferances
+  Future<List<String>> fetchUserPreferences() async {
+    final user = FirebaseAuth.instance.currentUser;
 
-    if (response.statusCode == 200) {
-      setState(() {
-        books = json.decode(response.body)['items'];
-      });
-    } else {
-      throw Exception('Failed to load books');
+    if (user == null) {
+      return [];
     }
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    if (doc.exists && doc.data() != null) {
+      final preferences = List<String>.from(doc.data()!['preferences'] ?? []);
+
+      return preferences;
+    }
+
+    // return [] if no preferance
+    return [];
+  }
+
+  Future<void> fetchRecommendedBooks() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    final preferences = await fetchUserPreferences();
+
+    List<dynamic> recommendedBooks = [];
+    const baseUrl = "https://www.googleapis.com/books/v1/volumes?q=subject:";
+
+    try {
+      if (preferences.isNotEmpty) {
+        // fetch books according to preferences
+        for (String preference in preferences) {
+          final response =
+              await http.get(Uri.parse("$baseUrl$preference&maxResults=20"));
+          if (response.statusCode == 200) {
+            final data = json.decode(response.body);
+            recommendedBooks.addAll(data['items'] ?? []);
+          }
+        }
+      } else {
+        final response =
+            await http.get(Uri.parse("$baseUrl+Fiction&maxResults=20"));
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          recommendedBooks.addAll(data['items'] ?? []);
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+
+    setState(() {
+      books = recommendedBooks;
+      isLoading = false;
+    });
   }
 
   Future<void> searchBooks(String query) async {
     final response = await http.get(
-      Uri.parse("https://www.googleapis.com/books/v1/volumes?q=$query&maxResults=20"),
+      Uri.parse(
+          "https://www.googleapis.com/books/v1/volumes?q=$query&maxResults=20"),
     );
 
     if (response.statusCode == 200) {
@@ -162,53 +214,60 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   }
 
   Future<void> submitReview(String bookId) async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user != null) {
-    final bookDoc = await FirebaseFirestore.instance.collection('books').doc(bookId).get();
-    if (bookDoc.exists) {
-      final book = bookDoc.data();
-      final genre = book!['genre'];
-      final authors = book['authors'] != null ? List<String>.from(book['authors']) : [];
-      final publicationDate = book['publishedDate'];
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final bookDoc = await FirebaseFirestore.instance
+          .collection('books')
+          .doc(bookId)
+          .get();
+      if (bookDoc.exists) {
+        final book = bookDoc.data();
+        final genre = book!['genre'];
+        final authors =
+            book['authors'] != null ? List<String>.from(book['authors']) : [];
+        final publicationDate = book['publishedDate'];
 
-      await FirebaseFirestore.instance.collection('reviews').add({
-        'bookId': bookId,
-        'userId': user.uid,
-        'review': _reviewController.text,
-        'rating': _rating,
-        'genre': genre,
-        'authors': authors,
-        'publishedDate': publicationDate,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+        await FirebaseFirestore.instance.collection('reviews').add({
+          'bookId': bookId,
+          'userId': user.uid,
+          'review': _reviewController.text,
+          'rating': _rating,
+          'genre': genre,
+          'authors': authors,
+          'publishedDate': publicationDate,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
 
-      // Update the rating collection
-      await FirebaseFirestore.instance.collection('ratings').add({
-        'bookId': bookId,
-        'userId': user.uid,
-        'rating': _rating,
-        'genre': genre,
-        'authors': authors,
-        'publishedDate': publicationDate,
-      });
+        // Update the rating collection
+        await FirebaseFirestore.instance.collection('ratings').add({
+          'bookId': bookId,
+          'userId': user.uid,
+          'rating': _rating,
+          'genre': genre,
+          'authors': authors,
+          'publishedDate': publicationDate,
+        });
 
-      // Mark the book as read
-      setState(() {
-        _readingStatus = 'Read';
-      });
+        // Mark the book as read
+        setState(() {
+          _readingStatus = 'Read';
+        });
 
-      _reviewController.clear();
-      setState(() {
-        _rating = 0;
-      });
+        _reviewController.clear();
+        setState(() {
+          _rating = 0;
+        });
+      }
     }
   }
-}
 
   Future<void> submitReadingStatus(String bookId) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      await FirebaseFirestore.instance.collection('user_books').doc(bookId).set({
+      await FirebaseFirestore.instance
+          .collection('user_books')
+          .doc(bookId)
+          .set({
         'userId': user.uid,
         'bookId': bookId,
         'status': _readingStatus,
