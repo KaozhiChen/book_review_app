@@ -16,6 +16,8 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController =
       TextEditingController();
+  final TextEditingController usernameController = TextEditingController();
+
   // genres
   final List<String> genres = [
     'Fiction',
@@ -60,8 +62,12 @@ class _SignUpPageState extends State<SignUpPage> {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
     final confirmPassword = confirmPasswordController.text.trim();
+    final username = usernameController.text.trim();
 
-    if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+    if (email.isEmpty ||
+        password.isEmpty ||
+        confirmPassword.isEmpty ||
+        username.isEmpty) {
       setState(() {
         errorMessage = 'All fields are required.';
       });
@@ -90,6 +96,7 @@ class _SignUpPageState extends State<SignUpPage> {
       UserModel userModel = UserModel(
         uid: userCredential.user!.uid,
         email: userCredential.user!.email!,
+        username: username,
         preferences: selectedGenres.toList(),
       );
 
@@ -197,6 +204,18 @@ class _SignUpPageState extends State<SignUpPage> {
               decoration: InputDecoration(
                 labelText: 'Confirm Password',
                 prefixIcon: const Icon(Icons.lock),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            // username
+            TextField(
+              controller: usernameController,
+              decoration: InputDecoration(
+                labelText: 'Username',
+                prefixIcon: const Icon(Icons.people),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
