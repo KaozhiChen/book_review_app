@@ -232,8 +232,7 @@ class _ProfilePageState extends State<ProfilePage> {
               radius: 60,
               backgroundImage: userProfile!['avatarUrl'] != null
                   ? NetworkImage(userProfile!['avatarUrl'])
-                  : const AssetImage('assets/default_avatar.png')
-                      as ImageProvider,
+                  : const AssetImage('assets/images/logo.png') as ImageProvider,
               child: const Align(
                 alignment: Alignment.bottomRight,
                 child: CircleAvatar(
@@ -270,10 +269,11 @@ class _ProfilePageState extends State<ProfilePage> {
                     icon: const Icon(Icons.edit)),
               ),
             ),
-
-            // preference section
             const SizedBox(height: 16),
             const Divider(),
+            const SizedBox(height: 16),
+
+            // preference section
             Row(
               children: [
                 const Text('Preferences:',
@@ -331,7 +331,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     .toList(),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 32),
 
             // change password
             GestureDetector(
