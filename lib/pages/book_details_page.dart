@@ -235,7 +235,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                   'Number of Pages: ${bookInfo['pageCount'] ?? 'N/A'}',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 32),
                 TextField(
                   controller: _reviewController,
                   decoration: const InputDecoration(
@@ -246,23 +246,32 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                 ),
                 const SizedBox(height: 16),
                 Row(
-                  children: List.generate(5, (index) {
-                    return IconButton(
-                      icon: Icon(
-                        index < _rating ? Icons.star : Icons.star_border,
-                      ),
-                      color: Colors.amber,
-                      onPressed: () {
-                        setState(() {
-                          _rating = index + 1;
-                        });
-                      },
-                    );
-                  }),
+                  children: [
+                    const Text(
+                      'Rating: ',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    ...List.generate(5, (index) {
+                      return IconButton(
+                        icon: Icon(
+                          index < _rating ? Icons.star : Icons.star_border,
+                        ),
+                        color: Colors.amber,
+                        onPressed: () {
+                          setState(() {
+                            _rating = index + 1;
+                          });
+                        },
+                      );
+                    }),
+                  ],
                 ),
-                ElevatedButton(
-                  onPressed: () => submitReview(bookId),
-                  child: const Text('Submit Review'),
+                Center(
+                  child: ElevatedButton(
+                    onPressed: () => submitReview(bookId),
+                    child: const Text('Submit Review'),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 const Text(
@@ -339,7 +348,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  // 星级评分
+                                  // ranking
                                   Row(
                                     children: List.generate(5, (starIndex) {
                                       return Icon(
@@ -382,22 +391,5 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         ),
       ),
     );
-  }
-}
-
-// formating time
-String _formatTimestamp(Timestamp timestamp) {
-  final dateTime = timestamp.toDate();
-  final now = DateTime.now();
-  final difference = now.difference(dateTime);
-
-  if (difference.inDays > 1) {
-    return "${difference.inDays} days ago";
-  } else if (difference.inHours > 1) {
-    return "${difference.inHours} hours ago";
-  } else if (difference.inMinutes > 1) {
-    return "${difference.inMinutes} minutes ago";
-  } else {
-    return "Just now";
   }
 }
