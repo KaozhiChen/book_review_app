@@ -162,6 +162,9 @@ class _HomePageState extends State<HomePage>
           child: Column(
             children: [
               // search bar
+              const SizedBox(
+                height: 16,
+              ),
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -205,7 +208,7 @@ class _HomePageState extends State<HomePage>
                         crossAxisCount: 2,
                         crossAxisSpacing: 12,
                         mainAxisSpacing: 12,
-                        childAspectRatio: 0.7,
+                        childAspectRatio: 0.78,
                       ),
                       itemCount: books.length,
                       itemBuilder: (context, index) {
@@ -290,7 +293,6 @@ class _HomePageState extends State<HomePage>
                   ],
                 ),
               ),
-
               // loading animation
               if (isLoading)
                 const Center(
