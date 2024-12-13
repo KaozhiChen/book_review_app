@@ -149,150 +149,255 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
       appBar: AppBar(
         title: Text(bookInfo['title'] ?? 'Book Details'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Image.network(imageUrl, fit: BoxFit.cover),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                bookInfo['title'] ?? 'No Title',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                bookInfo['authors'] != null
-                    ? bookInfo['authors'].join(', ')
-                    : 'No Author',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 16),
-              FutureBuilder<double>(
-                future: getAverageRating(bookId),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const CircularProgressIndicator();
-                  }
-                  if (snapshot.hasError) {
-                    return const Text('Error loading rating');
-                  }
-                  return Text(
-                    'Average Rating: ${snapshot.data?.toStringAsFixed(1) ?? 'N/A'}',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-              DropdownButton<String>(
-                value: _readingStatus,
-                items: <String>['Read', 'Currently Reading', 'Want to Read']
-                    .map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _readingStatus = newValue!;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    onPressed: () => submitReadingStatus(bookId),
-                    child: const Text('Submit'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _readingStatus = 'Read';
-                      });
-                    },
-                    child: const Text('Cancel'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                bookInfo['description'] ?? 'No Description',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Number of Pages: ${bookInfo['pageCount'] ?? 'N/A'}',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _reviewController,
-                decoration: const InputDecoration(
-                  labelText: 'Write a review',
-                  border: OutlineInputBorder(),
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Image.network(imageUrl, fit: BoxFit.cover),
                 ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: List.generate(5, (index) {
-                  return IconButton(
-                    icon: Icon(
-                      index < _rating ? Icons.star : Icons.star_border,
+                const SizedBox(height: 16),
+                Text(
+                  bookInfo['title'] ?? 'No Title',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  bookInfo['authors'] != null
+                      ? bookInfo['authors'].join(', ')
+                      : 'No Author',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 16),
+                FutureBuilder<double>(
+                  future: getAverageRating(bookId),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const CircularProgressIndicator();
+                    }
+                    if (snapshot.hasError) {
+                      return const Text('Error loading rating');
+                    }
+                    return Text(
+                      'Average Rating: ${snapshot.data?.toStringAsFixed(1) ?? 'N/A'}',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                DropdownButton<String>(
+                  value: _readingStatus,
+                  items: <String>['Read', 'Currently Reading', 'Want to Read']
+                      .map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _readingStatus = newValue!;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () => submitReadingStatus(bookId),
+                      child: const Text('Submit'),
                     ),
-                    color: Colors.amber,
-                    onPressed: () {
-                      setState(() {
-                        _rating = index + 1;
-                      });
-                    },
-                  );
-                }),
-              ),
-              ElevatedButton(
-                onPressed: () => submitReview(bookId),
-                child: const Text('Submit Review'),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Reviews:',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('reviews')
-                    .where('bookId', isEqualTo: bookId)
-                    .orderBy('timestamp', descending: true)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const CircularProgressIndicator();
-                  }
-                  final reviews = snapshot.data!.docs;
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: reviews.length,
-                    itemBuilder: (context, index) {
-                      final review = reviews[index];
-                      return ListTile(
-                        title: Text(review['review']),
-                        subtitle: Text('Rating: ${review['rating']}'),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _readingStatus = 'Read';
+                        });
+                      },
+                      child: const Text('Cancel'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  bookInfo['description'] ?? 'No Description',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Number of Pages: ${bookInfo['pageCount'] ?? 'N/A'}',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _reviewController,
+                  decoration: const InputDecoration(
+                    labelText: 'Write a review',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: List.generate(5, (index) {
+                    return IconButton(
+                      icon: Icon(
+                        index < _rating ? Icons.star : Icons.star_border,
+                      ),
+                      color: Colors.amber,
+                      onPressed: () {
+                        setState(() {
+                          _rating = index + 1;
+                        });
+                      },
+                    );
+                  }),
+                ),
+                ElevatedButton(
+                  onPressed: () => submitReview(bookId),
+                  child: const Text('Submit Review'),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Reviews:',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('reviews')
+                      .where('bookId', isEqualTo: bookId)
+                      // .orderBy('timestamp', descending: true)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(),
                       );
-                    },
-                  );
-                },
-              ),
-            ],
+                    }
+                    if (snapshot.hasError) {
+                      return const Center(
+                        child: Text("Failed to load reviews"),
+                      );
+                    }
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(
+                        child: Text("No reviews yet."),
+                      );
+                    }
+
+                    // get review list
+                    final reviews = snapshot.data!.docs;
+                    return ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: reviews.length,
+                      separatorBuilder: (context, index) => const Divider(
+                        thickness: 1.0,
+                        height: 20,
+                      ),
+                      itemBuilder: (context, index) {
+                        final review = reviews[index];
+                        final timestamp = review['timestamp'] != null
+                            ? (review['timestamp'] as Timestamp).toDate()
+                            : null;
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // avatar and username
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    child: Text(
+                                      review['username'][0].toUpperCase(),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    review['username'],
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+
+                              // ranking and time
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  // 星级评分
+                                  Row(
+                                    children: List.generate(5, (starIndex) {
+                                      return Icon(
+                                        starIndex < review['rating']
+                                            ? Icons.star
+                                            : Icons.star_border,
+                                        color: Colors.amber,
+                                        size: 20,
+                                      );
+                                    }),
+                                  ),
+                                  // time
+                                  if (timestamp != null)
+                                    Text(
+                                      "${timestamp.day}-${timestamp.month}-${timestamp.year}",
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+
+                              // review content
+                              Text(
+                                review['review'],
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+}
+
+// formating time
+String _formatTimestamp(Timestamp timestamp) {
+  final dateTime = timestamp.toDate();
+  final now = DateTime.now();
+  final difference = now.difference(dateTime);
+
+  if (difference.inDays > 1) {
+    return "${difference.inDays} days ago";
+  } else if (difference.inHours > 1) {
+    return "${difference.inHours} hours ago";
+  } else if (difference.inMinutes > 1) {
+    return "${difference.inMinutes} minutes ago";
+  } else {
+    return "Just now";
   }
 }
