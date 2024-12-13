@@ -273,7 +273,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                   stream: FirebaseFirestore.instance
                       .collection('reviews')
                       .where('bookId', isEqualTo: bookId)
-                      // .orderBy('timestamp', descending: true)
+                      .orderBy('timestamp', descending: true)
                       .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
