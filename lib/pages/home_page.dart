@@ -15,12 +15,24 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   List<dynamic> books = [];
   TextEditingController searchController = TextEditingController();
-  bool isLoading = true;
+  bool isLoading = false;
+  bool isFetchingMore = false;
+  int currentPage = 0; // the index of current page
+  final int pageSize = 5; // the number of loading books
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     fetchRecommendedBooks();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   // get user preferances
@@ -46,45 +58,61 @@ class _HomePageState extends State<HomePage> {
     return [];
   }
 
-  Future<void> fetchRecommendedBooks() async {
-    setState(() {
-      isLoading = true;
-    });
+  Future<void> fetchRecommendedBooks({bool loadMore = false}) async {
+    if (isLoading || isFetchingMore) return;
 
-    final preferences = await fetchUserPreferences();
-
-    List<dynamic> recommendedBooks = [];
-    const baseUrl = "https://www.googleapis.com/books/v1/volumes?q=subject:";
+    if (loadMore) {
+      setState(() {
+        isFetchingMore = true;
+      });
+    } else {
+      setState(() {
+        isLoading = true;
+      });
+    }
 
     try {
+      final preferences = await fetchUserPreferences();
+      const baseUrl = "https://www.googleapis.com/books/v1/volumes?q=subject:";
+
+      List<dynamic> fetchedBooks = [];
+
       if (preferences.isNotEmpty) {
-        // fetch books according to preferences
         for (String preference in preferences) {
-          final response =
-              await http.get(Uri.parse("$baseUrl$preference&maxResults=20"));
+          final response = await http.get(Uri.parse(
+              "$baseUrl$preference&startIndex=${currentPage * pageSize}&maxResults=$pageSize"));
           if (response.statusCode == 200) {
             final data = json.decode(response.body);
-            recommendedBooks.addAll(data['items'] ?? []);
+            fetchedBooks.addAll(data['items'] ?? []);
           }
         }
       } else {
-        final response =
-            await http.get(Uri.parse("$baseUrl+Fiction&maxResults=20"));
+        final response = await http.get(Uri.parse(
+            "$baseUrl+Fiction&startIndex=${currentPage * pageSize}&maxResults=$pageSize"));
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
-          recommendedBooks.addAll(data['items'] ?? []);
+          fetchedBooks.addAll(data['items'] ?? []);
         }
       }
+
+      setState(() {
+        if (loadMore) {
+          books.addAll(fetchedBooks);
+        } else {
+          books = fetchedBooks;
+        }
+        currentPage++;
+      });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
+    } finally {
+      setState(() {
+        isLoading = false;
+        isFetchingMore = false;
+      });
     }
-
-    setState(() {
-      books = recommendedBooks;
-      isLoading = false;
-    });
   }
 
   Future<void> searchBooks(String query) async {
@@ -102,131 +130,159 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  void _onScroll() {
+    if (_scrollController.position.extentAfter < 100 && !isFetchingMore) {
+      fetchRecommendedBooks(loadMore: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Book Review App'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12.0),
-        child: Column(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.2),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: TextField(
-                controller: searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search for books...',
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                      vertical: 14.0, horizontal: 20.0),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.search),
-                    onPressed: () {
-                      searchBooks(searchController.text);
-                    },
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(
-              height: 16,
-            ),
-            Expanded(
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 0.70,
-                ),
-                itemCount: books.length,
-                itemBuilder: (context, index) {
-                  final book = books[index];
-                  final bookInfo = book['volumeInfo'];
-                  final imageUrl = bookInfo['imageLinks'] != null
-                      ? bookInfo['imageLinks']['thumbnail']
-                      : 'https://via.placeholder.com/150';
-
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => BookDetailsPage(book: book),
-                        ),
-                      );
-                    },
-                    child: Card(
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // book images
-                          ClipRRect(
-                            borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(16)),
-                            child: Image.network(
-                              imageUrl,
-                              fit: BoxFit.fitWidth,
-                              height: 170,
-                              width: double.infinity,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          // books' name
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Text(
-                              bookInfo['title'] ?? 'No Title',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          // author
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Text(
-                              bookInfo['authors'] != null
-                                  ? bookInfo['authors'].join(', ')
-                                  : 'Unknow Author',
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 12,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
+        appBar: AppBar(
+          title: const Text('Book Review App'),
         ),
-      ),
-    );
+        body: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+          child: Column(
+            children: [
+              // search bar
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.2),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search for books...',
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                        vertical: 14.0, horizontal: 20.0),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.search),
+                      onPressed: () {
+                        searchBooks(searchController.text);
+                      },
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(
+                height: 16,
+              ),
+
+              // book list
+              Expanded(
+                child: Stack(
+                  children: [
+                    GridView.builder(
+                      controller: _scrollController,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 0.7,
+                      ),
+                      itemCount: books.length,
+                      itemBuilder: (context, index) {
+                        final book = books[index];
+                        final bookInfo = book['volumeInfo'];
+                        final imageUrl = bookInfo['imageLinks'] != null
+                            ? bookInfo['imageLinks']['thumbnail']
+                            : 'https://via.placeholder.com/150';
+
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    BookDetailsPage(book: book),
+                              ),
+                            );
+                          },
+                          child: Card(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(16)),
+                                  child: Image.network(
+                                    imageUrl,
+                                    fit: BoxFit.cover,
+                                    height: 140,
+                                    width: double.infinity,
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        bookInfo['title'] ?? 'No Title',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        bookInfo['authors'] != null
+                                            ? bookInfo['authors'].join(', ')
+                                            : 'No Author',
+                                        style: const TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 12,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    if (isFetchingMore)
+                      const Positioned(
+                        bottom: 16,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+              // loading animation
+              if (isLoading)
+                const Center(
+                  child: CircularProgressIndicator(),
+                ),
+            ],
+          ),
+        ));
   }
 }
