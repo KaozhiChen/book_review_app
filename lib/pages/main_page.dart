@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:book_review_app/pages/library_page.dart';
 import 'package:book_review_app/pages/home_page.dart';
 import 'package:book_review_app/pages/profile_page.dart';
-// import 'package:book_review_app/pages/recommendations_page.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -18,14 +17,16 @@ class _MainPageState extends State<MainPage> {
   final List<Widget> _pages = [
     const HomePage(),
     const LibraryPage(),
-    // const RecommendationsPage(),
     const ProfilePage(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_currentIndex],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
@@ -44,11 +45,6 @@ class _MainPageState extends State<MainPage> {
             selectedIcon: Icon(Icons.library_books),
             label: 'Library',
           ),
-          // NavigationDestination(
-          //   icon: Icon(Icons.star_outline),
-          //   selectedIcon: Icon(Icons.star),
-          //   label: 'Recommendations',
-          // ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
