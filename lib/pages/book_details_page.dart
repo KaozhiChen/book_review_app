@@ -34,44 +34,91 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
 
   Future<void> submitReview(String bookId) async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final bookDoc = await FirebaseFirestore.instance
-          .collection('books')
-          .doc(bookId)
-          .get();
-      if (bookDoc.exists) {
-        final book = bookDoc.data();
-        final genre = book!['genre'];
-        final authors =
-            book['authors'] != null ? List<String>.from(book['authors']) : [];
-        final publicationDate = book['publishedDate'];
 
-        await FirebaseFirestore.instance.collection('reviews').add({
-          'bookId': bookId,
-          'userId': user.uid,
-          'review': _reviewController.text,
-          'rating': _rating,
-          'genre': genre,
-          'authors': authors,
-          'publishedDate': publicationDate,
-          'timestamp': FieldValue.serverTimestamp(),
-        });
-
-        await FirebaseFirestore.instance.collection('ratings').add({
-          'bookId': bookId,
-          'userId': user.uid,
-          'rating': _rating,
-          'genre': genre,
-          'authors': authors,
-          'publishedDate': publicationDate,
-        });
-
-        setState(() {
-          _readingStatus = 'Read';
-          _rating = 0;
-        });
-      }
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please log in to submit a review")),
+      );
+      return;
     }
+
+    if (_reviewController.text.trim().isEmpty || _rating == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please provide a review and rating")),
+      );
+      return;
+    }
+
+    try {
+      // get username
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      final username = userDoc.data()?['username'] ?? 'Anonymous';
+
+      // submit review
+      await FirebaseFirestore.instance.collection('reviews').add({
+        'bookId': bookId,
+        'userId': user.uid,
+        'review': _reviewController.text.trim(),
+        'rating': _rating,
+        'timestamp': FieldValue.serverTimestamp(),
+        'username': username,
+      });
+
+      setState(() {
+        _reviewController.clear();
+        _rating = 0;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Review submitted successfully!")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to submit review: $e")),
+      );
+    }
+
+    // if (user != null) {
+    //   final bookDoc = await FirebaseFirestore.instance
+    //       .collection('books')
+    //       .doc(bookId)
+    //       .get();
+    //   if (bookDoc.exists) {
+    //     final book = bookDoc.data();
+    //     final genre = book!['genre'];
+    //     final authors =
+    //         book['authors'] != null ? List<String>.from(book['authors']) : [];
+    //     final publicationDate = book['publishedDate'];
+
+    //     await FirebaseFirestore.instance.collection('reviews').add({
+    //       'bookId': bookId,
+    //       'userId': user.uid,
+    //       'review': _reviewController.text,
+    //       'rating': _rating,
+    //       'genre': genre,
+    //       'authors': authors,
+    //       'publishedDate': publicationDate,
+    //       'timestamp': FieldValue.serverTimestamp(),
+    //     });
+
+    //     await FirebaseFirestore.instance.collection('ratings').add({
+    //       'bookId': bookId,
+    //       'userId': user.uid,
+    //       'rating': _rating,
+    //       'genre': genre,
+    //       'authors': authors,
+    //       'publishedDate': publicationDate,
+    //     });
+
+    //     setState(() {
+    //       _readingStatus = 'Read';
+    //       _rating = 0;
+    //     });
+    //   }
+    // }
   }
 
   Future<void> submitReadingStatus(String bookId) async {
@@ -221,6 +268,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                 stream: FirebaseFirestore.instance
                     .collection('reviews')
                     .where('bookId', isEqualTo: bookId)
+                    .orderBy('timestamp', descending: true)
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
@@ -229,6 +277,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                   final reviews = snapshot.data!.docs;
                   return ListView.builder(
                     shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
                     itemCount: reviews.length,
                     itemBuilder: (context, index) {
                       final review = reviews[index];
