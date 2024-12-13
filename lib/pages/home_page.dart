@@ -143,6 +143,16 @@ class _HomePageState extends State<HomePage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+
+    if (isLoading) {
+      // loading animation
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
         appBar: AppBar(
           title: const Text('Book Review App'),
