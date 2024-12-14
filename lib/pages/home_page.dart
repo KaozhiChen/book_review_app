@@ -40,29 +40,41 @@ class _HomePageState extends State<HomePage>
     super.dispose();
   }
 
-  // get user preferances
-  Future<List<String>> fetchUserPreferences() async {
+  // get user preferances and reviews
+  Future<Map<String, List<String>>> fetchUserPreferencesAndReviews() async {
     final user = FirebaseAuth.instance.currentUser;
-
     if (user == null) {
-      return [];
+      return {"preferences": [], "favoriteGenres": []};
     }
 
-    final doc = await FirebaseFirestore.instance
+    // get user preferences
+    final userDoc = await FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
         .get();
-
-    if (doc.exists && doc.data() != null) {
-      final preferences = List<String>.from(doc.data()!['preferences'] ?? []);
-
-      return preferences;
+    List<String> preferences = [];
+    if (userDoc.exists && userDoc.data() != null) {
+      preferences = List<String>.from(userDoc.data()!['preferences'] ?? []);
     }
 
-    // return [] if no preferance
-    return [];
+    // get high rating genres
+    final reviewsQuery = await FirebaseFirestore.instance
+        .collection('reviews')
+        .where('userId', isEqualTo: user.uid)
+        .where('rating', isGreaterThanOrEqualTo: 4)
+        .get();
+    final favoriteGenres = reviewsQuery.docs
+        .expand((doc) {
+          final genre = doc.data()['genre'] as String;
+          return genre.split('/').map((g) => g.trim());
+        })
+        .toSet()
+        .toList();
+
+    return {"preferences": preferences, "favoriteGenres": favoriteGenres};
   }
 
+  // get recommended books
   Future<void> fetchRecommendedBooks({bool loadMore = false}) async {
     if (isLoading || isFetchingMore) return;
 
@@ -77,12 +89,30 @@ class _HomePageState extends State<HomePage>
     }
 
     try {
-      final preferences = await fetchUserPreferences();
+      // get genres according to user's preferences and rating
+      final userData = await fetchUserPreferencesAndReviews();
+      final preferences = userData['preferences'];
+      final favoriteGenres = userData['favoriteGenres'];
+
       const baseUrl = "https://www.googleapis.com/books/v1/volumes?q=subject:";
 
       List<dynamic> fetchedBooks = [];
 
-      if (preferences.isNotEmpty) {
+      // priorotize recommended books base on high ratings
+      if (favoriteGenres!.isNotEmpty) {
+        for (String genre in favoriteGenres) {
+          final response = await http.get(Uri.parse(
+              "$baseUrl$genre&startIndex=${currentPage * pageSize}&maxResults=$pageSize"));
+          print("Fetching books for genre: $genre, Response: ${response.body}");
+          if (response.statusCode == 200) {
+            final data = json.decode(response.body);
+            fetchedBooks.addAll(data['items'] ?? []);
+          }
+        }
+      }
+
+      // base on preferences secondly
+      if (preferences!.isNotEmpty) {
         for (String preference in preferences) {
           final response = await http.get(Uri.parse(
               "$baseUrl$preference&startIndex=${currentPage * pageSize}&maxResults=$pageSize"));
@@ -90,13 +120,6 @@ class _HomePageState extends State<HomePage>
             final data = json.decode(response.body);
             fetchedBooks.addAll(data['items'] ?? []);
           }
-        }
-      } else {
-        final response = await http.get(Uri.parse(
-            "$baseUrl+Fiction&startIndex=${currentPage * pageSize}&maxResults=$pageSize"));
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body);
-          fetchedBooks.addAll(data['items'] ?? []);
         }
       }
 
