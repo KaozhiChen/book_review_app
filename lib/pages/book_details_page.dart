@@ -19,6 +19,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   String _readingStatus = 'Read';
 
   Future<double> getAverageRating(String bookId) async {
+  try {
     final ratings = await FirebaseFirestore.instance
         .collection('ratings')
         .where('bookId', isEqualTo: bookId)
@@ -32,7 +33,12 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     }
 
     return totalRating / ratings.docs.length;
+  } catch (e) {
+    print('Error fetching average rating: $e');
+    return 0.0;
   }
+}
+
 
   Future<void> submitReview(String bookId) async {
     final user = FirebaseAuth.instance.currentUser;
@@ -68,7 +74,12 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         'timestamp': FieldValue.serverTimestamp(),
         'username': username,
       });
-
+      await FirebaseFirestore.instance.collection('ratings').add({
+      'bookId': bookId,
+      'userId': user.uid,
+      'rating': _rating,
+      });
+      
       setState(() {
         _reviewController.clear();
         _rating = 0;
