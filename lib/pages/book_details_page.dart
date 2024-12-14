@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../models/book_model.dart';
+
 class BookDetailsPage extends StatefulWidget {
   final dynamic book;
 
@@ -80,61 +82,37 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         SnackBar(content: Text("Failed to submit review: $e")),
       );
     }
-
-    // if (user != null) {
-    //   final bookDoc = await FirebaseFirestore.instance
-    //       .collection('books')
-    //       .doc(bookId)
-    //       .get();
-    //   if (bookDoc.exists) {
-    //     final book = bookDoc.data();
-    //     final genre = book!['genre'];
-    //     final authors =
-    //         book['authors'] != null ? List<String>.from(book['authors']) : [];
-    //     final publicationDate = book['publishedDate'];
-
-    //     await FirebaseFirestore.instance.collection('reviews').add({
-    //       'bookId': bookId,
-    //       'userId': user.uid,
-    //       'review': _reviewController.text,
-    //       'rating': _rating,
-    //       'genre': genre,
-    //       'authors': authors,
-    //       'publishedDate': publicationDate,
-    //       'timestamp': FieldValue.serverTimestamp(),
-    //     });
-
-    //     await FirebaseFirestore.instance.collection('ratings').add({
-    //       'bookId': bookId,
-    //       'userId': user.uid,
-    //       'rating': _rating,
-    //       'genre': genre,
-    //       'authors': authors,
-    //       'publishedDate': publicationDate,
-    //     });
-
-    //     setState(() {
-    //       _readingStatus = 'Read';
-    //       _rating = 0;
-    //     });
-    //   }
-    // }
   }
 
+  // update reading status
   Future<void> submitReadingStatus(String bookId) async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await FirebaseFirestore.instance
-          .collection('user_books')
-          .doc(bookId)
-          .set({
-        'userId': user.uid,
-        'bookId': bookId,
-        'status': _readingStatus,
-        'bookInfo': widget.book['volumeInfo'],
-        'rating': _rating,
-      });
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please log in to save reading status")),
+      );
+      return;
     }
+
+    // BookModel
+    final bookModel = BookModel(
+      bookId: bookId,
+      title: widget.book['volumeInfo']['title'] ?? 'Unknown Title',
+      authors: List<String>.from(widget.book['volumeInfo']['authors'] ?? []),
+      status: _readingStatus.toLowerCase().replaceAll(' ', '_'),
+      timestamp: DateTime.now(),
+      imageUrl: widget.book['volumeInfo']['imageLinks']?['thumbnail'] ??
+          'https://via.placeholder.com/150',
+    );
+
+    // save to Firestore
+    await FirebaseFirestore.instance
+        .collection('user_books')
+        .doc(user.uid)
+        .collection('books')
+        .doc(bookId)
+        .set(bookModel.toJson());
   }
 
   @override
@@ -211,15 +189,35 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
+                    // Submit Button
                     ElevatedButton(
-                      onPressed: () => submitReadingStatus(bookId),
+                      onPressed: () async {
+                        try {
+                          await submitReadingStatus(bookId);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Status updated successfully!')),
+                          );
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content: Text('Failed to update status: $e')),
+                          );
+                        }
+                      },
                       child: const Text('Submit'),
                     ),
+
+                    // Cancel Button
                     ElevatedButton(
                       onPressed: () {
                         setState(() {
                           _readingStatus = 'Read';
                         });
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Status reset to Read')),
+                        );
                       },
                       child: const Text('Cancel'),
                     ),

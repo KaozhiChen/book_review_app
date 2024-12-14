@@ -4,6 +4,7 @@ class BookModel {
   final List<String> authors;
   final String status; // read, currently_reading, want_to_read
   final DateTime? timestamp;
+  final String imageUrl;
 
   BookModel({
     required this.bookId,
@@ -11,6 +12,7 @@ class BookModel {
     required this.authors,
     required this.status,
     this.timestamp,
+    required this.imageUrl,
   });
 
   // cover to JSON and save to Firestore
@@ -21,6 +23,7 @@ class BookModel {
       'authors': authors,
       'status': status,
       'timestamp': timestamp?.toUtc().toIso8601String(),
+      'imageUrl': imageUrl,
     };
   }
 
@@ -33,6 +36,7 @@ class BookModel {
       timestamp: json['timestamp'] != null
           ? DateTime.parse(json['timestamp'] as String)
           : null,
+      imageUrl: json['imageUrl'] ?? 'https://via.placeholder.com/150',
     );
   }
 }
