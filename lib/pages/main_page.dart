@@ -1,3 +1,4 @@
+import 'package:book_review_app/pages/explore_page.dart';
 import 'package:flutter/material.dart';
 import 'package:book_review_app/pages/library_page.dart';
 import 'package:book_review_app/pages/home_page.dart';
@@ -17,6 +18,7 @@ class _MainPageState extends State<MainPage> {
   final List<Widget> _pages = [
     const HomePage(),
     const LibraryPage(),
+    const ExplorePage(),
     const ProfilePage(),
   ];
 
@@ -44,6 +46,11 @@ class _MainPageState extends State<MainPage> {
             icon: Icon(Icons.library_books_outlined),
             selectedIcon: Icon(Icons.library_books),
             label: 'Library',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.search_outlined),
+            selectedIcon: Icon(Icons.search),
+            label: 'Explore',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
