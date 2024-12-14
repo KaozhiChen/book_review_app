@@ -1,3 +1,4 @@
+import 'package:book_review_app/theme/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -196,6 +197,19 @@ class _HomePageState extends State<HomePage>
               const SizedBox(
                 height: 16,
               ),
+
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: Text(
+                  'Think you might like...',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: textSecondary,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
 
               // book list
               Expanded(

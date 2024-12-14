@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../models/book_model.dart';
+
 class LibraryPage extends StatefulWidget {
   const LibraryPage({super.key});
 
   @override
-  State<LibraryPage> createState() => _LibraryPage();
+  State<LibraryPage> createState() => _LibraryPageState();
 }
 
-class _LibraryPage extends State<LibraryPage>
+class _LibraryPageState extends State<LibraryPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
@@ -25,72 +27,86 @@ class _LibraryPage extends State<LibraryPage>
     super.dispose();
   }
 
-  Future<List<Map<String, dynamic>>> fetchBooks(String status) async {
+  // Stream to fetch books by status
+  Stream<List<BookModel>> fetchBooksStream(String status) {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return [];
+    if (user == null) {
+      return const Stream.empty();
+    }
 
-    final books = await FirebaseFirestore.instance
+    return FirebaseFirestore.instance
         .collection('user_books')
-        .where('userId', isEqualTo: user.uid)
+        .doc(user.uid)
+        .collection('books')
         .where('status', isEqualTo: status)
-        .get();
-
-    return books.docs.map((doc) => doc.data()).toList();
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => BookModel.fromJson(doc.data()))
+            .toList());
   }
 
+  // Remove book from Firestore
   Future<void> removeBook(String bookId, String status) async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await FirebaseFirestore.instance
+    if (user == null) return;
+
+    try {
+      final docRef = FirebaseFirestore.instance
           .collection('user_books')
-          .where('userId', isEqualTo: user.uid)
-          .where('bookId', isEqualTo: bookId)
-          .where('status', isEqualTo: status)
-          .get()
-          .then((snapshot) {
-        for (DocumentSnapshot ds in snapshot.docs) {
-          ds.reference.delete();
-        }
-      });
-      setState(() {});
+          .doc(user.uid)
+          .collection('books')
+          .doc(bookId);
+
+      await docRef.delete();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Book removed successfully")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to remove book: $e")),
+      );
     }
   }
 
-  Widget buildBookList(List<Map<String, dynamic>> books, String status) {
+  // Build list of books
+  Widget buildBookList(List<BookModel> books, String status) {
+    if (books.isEmpty) {
+      return Center(
+        child: Text(
+          'No books in $status.',
+          style: const TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      );
+    }
+
     return ListView.builder(
       itemCount: books.length,
       itemBuilder: (context, index) {
         final book = books[index];
-        final bookInfo = book['bookInfo'];
-        final imageUrl = bookInfo['imageLinks'] != null
-            ? bookInfo['imageLinks']['thumbnail']
-            : 'https://via.placeholder.com/150';
-        final bookId = book['bookId'];
-        final rating = book['rating'] ?? 0;
 
         return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
           child: ListTile(
-            leading: Image.network(imageUrl, fit: BoxFit.cover),
-            title: Text(bookInfo['title'] ?? 'No Title'),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(bookInfo['authors'] != null
-                    ? bookInfo['authors'].join(', ')
-                    : 'No Author'),
-                Row(
-                  children: List.generate(5, (index) {
-                    return Icon(
-                      index < rating ? Icons.star : Icons.star_border,
-                      color: Colors.amber,
-                    );
-                  }),
-                ),
-              ],
+            leading: Image.network(
+              book.imageUrl,
+              fit: BoxFit.cover,
+              width: 50,
+              height: 75,
+              errorBuilder: (context, error, stackTrace) {
+                return Image.asset(
+                  'assets/default_book.png',
+                  fit: BoxFit.cover,
+                  width: 50,
+                  height: 75,
+                );
+              },
             ),
+            title: Text(book.title),
+            subtitle: Text(book.authors.join(', ')),
             trailing: IconButton(
-              icon: Icon(Icons.delete),
-              onPressed: () => removeBook(bookId, status),
+              icon: const Icon(Icons.delete),
+              onPressed: () => removeBook(book.bookId, status),
             ),
           ),
         );
@@ -102,7 +118,7 @@ class _LibraryPage extends State<LibraryPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: const Text('Library'),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -115,8 +131,8 @@ class _LibraryPage extends State<LibraryPage>
       body: TabBarView(
         controller: _tabController,
         children: [
-          FutureBuilder<List<Map<String, dynamic>>>(
-            future: fetchBooks('Read'),
+          StreamBuilder<List<BookModel>>(
+            stream: fetchBooksStream('read'),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -127,8 +143,8 @@ class _LibraryPage extends State<LibraryPage>
               return buildBookList(snapshot.data ?? [], 'Read');
             },
           ),
-          FutureBuilder<List<Map<String, dynamic>>>(
-            future: fetchBooks('Currently Reading'),
+          StreamBuilder<List<BookModel>>(
+            stream: fetchBooksStream('currently_reading'),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -139,8 +155,8 @@ class _LibraryPage extends State<LibraryPage>
               return buildBookList(snapshot.data ?? [], 'Currently Reading');
             },
           ),
-          FutureBuilder<List<Map<String, dynamic>>>(
-            future: fetchBooks('Want to Read'),
+          StreamBuilder<List<BookModel>>(
+            stream: fetchBooksStream('want_to_read'),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
