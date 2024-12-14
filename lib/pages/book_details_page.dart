@@ -18,29 +18,38 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   int _rating = 0;
   String _readingStatus = 'Read';
 
-  Future<double> getAverageRating(String bookId) async {
-  try {
-    final ratings = await FirebaseFirestore.instance
-        .collection('ratings')
-        .where('bookId', isEqualTo: bookId)
-        .get();
+  late final String bookId;
 
-    if (ratings.docs.isEmpty) return 0.0;
-
-    double totalRating = 0.0;
-    for (var doc in ratings.docs) {
-      totalRating += doc['rating'];
-    }
-
-    return totalRating / ratings.docs.length;
-  } catch (e) {
-    print('Error fetching average rating: $e');
-    return 0.0;
+  @override
+  void initState() {
+    super.initState();
+    bookId = widget.book is BookModel
+        ? widget.book.bookId
+        : widget.book['id'] as String;
   }
-}
 
+  Future<double> getAverageRating() async {
+    try {
+      final ratings = await FirebaseFirestore.instance
+          .collection('ratings')
+          .where('bookId', isEqualTo: bookId)
+          .get();
 
-  Future<void> submitReview(String bookId) async {
+      if (ratings.docs.isEmpty) return 0.0;
+
+      double totalRating = 0.0;
+      for (var doc in ratings.docs) {
+        totalRating += doc['rating'];
+      }
+
+      return totalRating / ratings.docs.length;
+    } catch (e) {
+      print('Error fetching average rating: $e');
+      return 0.0;
+    }
+  }
+
+  Future<void> submitReview() async {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
@@ -58,14 +67,12 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     }
 
     try {
-      // get username
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
       final username = userDoc.data()?['username'] ?? 'Anonymous';
 
-      // submit review
       await FirebaseFirestore.instance.collection('reviews').add({
         'bookId': bookId,
         'userId': user.uid,
@@ -75,11 +82,11 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         'username': username,
       });
       await FirebaseFirestore.instance.collection('ratings').add({
-      'bookId': bookId,
-      'userId': user.uid,
-      'rating': _rating,
+        'bookId': bookId,
+        'userId': user.uid,
+        'rating': _rating,
       });
-      
+
       setState(() {
         _reviewController.clear();
         _rating = 0;
@@ -95,8 +102,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     }
   }
 
-  // update reading status
-  Future<void> submitReadingStatus(String bookId) async {
+  Future<void> submitReadingStatus() async {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
@@ -106,33 +112,45 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
       return;
     }
 
-    // BookModel
-    final bookModel = BookModel(
-      bookId: bookId,
-      title: widget.book['volumeInfo']['title'] ?? 'Unknown Title',
-      authors: List<String>.from(widget.book['volumeInfo']['authors'] ?? []),
-      status: _readingStatus.toLowerCase().replaceAll(' ', '_'),
-      timestamp: DateTime.now(),
-      imageUrl: widget.book['volumeInfo']['imageLinks']?['thumbnail'] ??
-          'https://via.placeholder.com/150',
-    );
+    final bookModel = widget.book is BookModel
+        ? widget.book
+        : BookModel(
+            bookId: widget.book['id'],
+            title: widget.book['volumeInfo']['title'] ?? 'Unknown Title',
+            authors:
+                List<String>.from(widget.book['volumeInfo']['authors'] ?? []),
+            status: _readingStatus.toLowerCase().replaceAll(' ', '_'),
+            timestamp: DateTime.now(),
+            imageUrl: widget.book['volumeInfo']['imageLinks']?['thumbnail'] ??
+                'https://via.placeholder.com/150',
+          );
 
-    // save to Firestore
     await FirebaseFirestore.instance
         .collection('user_books')
         .doc(user.uid)
         .collection('books')
         .doc(bookId)
         .set(bookModel.toJson());
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Reading status updated successfully!")),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final bookInfo = widget.book['volumeInfo'];
-    final imageUrl = bookInfo['imageLinks'] != null
-        ? bookInfo['imageLinks']['thumbnail']
-        : 'https://via.placeholder.com/150';
-    final bookId = widget.book['id'];
+    final bookInfo = widget.book is BookModel
+        ? {
+            'title': widget.book.title,
+            'authors': widget.book.authors,
+            'imageLinks': {'thumbnail': widget.book.imageUrl},
+            'description': '',
+            'pageCount': '',
+          }
+        : widget.book['volumeInfo'];
+
+    final imageUrl = bookInfo['imageLinks']?['thumbnail'] ??
+        'https://via.placeholder.com/150';
 
     return Scaffold(
       appBar: AppBar(
@@ -140,9 +158,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
       ),
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () {
-          FocusScope.of(context).unfocus();
-        },
+        onTap: () => FocusScope.of(context).unfocus(),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: SingleChildScrollView(
@@ -166,7 +182,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                 ),
                 const SizedBox(height: 16),
                 FutureBuilder<double>(
-                  future: getAverageRating(bookId),
+                  future: getAverageRating(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const CircularProgressIndicator();
@@ -200,35 +216,15 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    // Submit Button
                     ElevatedButton(
-                      onPressed: () async {
-                        try {
-                          await submitReadingStatus(bookId);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Status updated successfully!')),
-                          );
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content: Text('Failed to update status: $e')),
-                          );
-                        }
-                      },
+                      onPressed: submitReadingStatus,
                       child: const Text('Submit'),
                     ),
-
-                    // Cancel Button
                     ElevatedButton(
                       onPressed: () {
                         setState(() {
                           _readingStatus = 'Read';
                         });
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Status reset to Read')),
-                        );
                       },
                       child: const Text('Cancel'),
                     ),
@@ -278,7 +274,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                 ),
                 Center(
                   child: ElevatedButton(
-                    onPressed: () => submitReview(bookId),
+                    onPressed: submitReview,
                     child: const Text('Submit Review'),
                   ),
                 ),
@@ -310,7 +306,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                       );
                     }
 
-                    // get review list
                     final reviews = snapshot.data!.docs;
                     return ListView.separated(
                       shrinkWrap: true,
@@ -330,7 +325,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // avatar and username
                               Row(
                                 children: [
                                   CircleAvatar(
@@ -351,13 +345,10 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                                 ],
                               ),
                               const SizedBox(height: 8),
-
-                              // ranking and time
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  // ranking
                                   Row(
                                     children: List.generate(5, (starIndex) {
                                       return Icon(
@@ -369,7 +360,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                                       );
                                     }),
                                   ),
-                                  // time
                                   if (timestamp != null)
                                     Text(
                                       "${timestamp.day}-${timestamp.month}-${timestamp.year}",
@@ -381,8 +371,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                                 ],
                               ),
                               const SizedBox(height: 8),
-
-                              // review content
                               Text(
                                 review['review'],
                                 style: const TextStyle(fontSize: 16),

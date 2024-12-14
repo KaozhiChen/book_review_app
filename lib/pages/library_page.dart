@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import '../models/book_model.dart';
+import 'book_details_page.dart';
 
 class LibraryPage extends StatefulWidget {
   const LibraryPage({super.key});
@@ -116,6 +116,15 @@ class _LibraryPageState extends State<LibraryPage>
               icon: const Icon(Icons.delete),
               onPressed: () => removeBook(book.bookId, status),
             ),
+            onTap: () {
+              // Navigate to the BookDetailsPage
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BookDetailsPage(book: book),
+                ),
+              );
+            },
           ),
         );
       },
