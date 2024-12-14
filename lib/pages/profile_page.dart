@@ -233,14 +233,6 @@ class _ProfilePageState extends State<ProfilePage> {
               backgroundImage: userProfile!['avatarUrl'] != null
                   ? NetworkImage(userProfile!['avatarUrl'])
                   : const AssetImage('assets/images/logo.png') as ImageProvider,
-              child: const Align(
-                alignment: Alignment.bottomRight,
-                child: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.camera_alt, color: Colors.grey),
-                ),
-              ),
             ),
             const SizedBox(height: 16),
 
