@@ -102,8 +102,16 @@ class _LibraryPageState extends State<LibraryPage>
                 );
               },
             ),
-            title: Text(book.title),
-            subtitle: Text(book.authors.join(', ')),
+            title: Text(
+              book.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            subtitle: Text(
+              book.authors.join(', '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             trailing: IconButton(
               icon: const Icon(Icons.delete),
               onPressed: () => removeBook(book.bookId, status),
