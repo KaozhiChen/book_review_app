@@ -1,9 +1,9 @@
-import 'package:book_review_app/theme/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../theme/colors.dart';
 import 'book_details_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -19,11 +19,13 @@ class _HomePageState extends State<HomePage>
   bool get wantKeepAlive => true;
 
   List<dynamic> books = [];
+  List<dynamic> originalBooks = [];
   TextEditingController searchController = TextEditingController();
   bool isLoading = false;
   bool isFetchingMore = false;
-  int currentPage = 0; // the index of current page
-  final int pageSize = 5; // the number of loading books
+  bool isSearching = false;
+  int currentPage = 0;
+  final int pageSize = 5;
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -40,14 +42,14 @@ class _HomePageState extends State<HomePage>
     super.dispose();
   }
 
-  // get user preferances and reviews
+  // get preferences and ratings
   Future<Map<String, List<String>>> fetchUserPreferencesAndReviews() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       return {"preferences": [], "favoriteGenres": []};
     }
 
-    // get user preferences
+    // preferences
     final userDoc = await FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
@@ -57,7 +59,7 @@ class _HomePageState extends State<HomePage>
       preferences = List<String>.from(userDoc.data()!['preferences'] ?? []);
     }
 
-    // get high rating genres
+    // ratings
     final reviewsQuery = await FirebaseFirestore.instance
         .collection('reviews')
         .where('userId', isEqualTo: user.uid)
@@ -74,7 +76,7 @@ class _HomePageState extends State<HomePage>
     return {"preferences": preferences, "favoriteGenres": favoriteGenres};
   }
 
-  // get recommended books
+  // get recommand books
   Future<void> fetchRecommendedBooks({bool loadMore = false}) async {
     if (isLoading || isFetchingMore) return;
 
@@ -89,7 +91,7 @@ class _HomePageState extends State<HomePage>
     }
 
     try {
-      // get genres according to user's preferences and rating
+      // recommand books according to preferences and ratings
       final userData = await fetchUserPreferencesAndReviews();
       final preferences = userData['preferences'];
       final favoriteGenres = userData['favoriteGenres'];
@@ -98,12 +100,11 @@ class _HomePageState extends State<HomePage>
 
       List<dynamic> fetchedBooks = [];
 
-      // priorotize recommended books base on high ratings
+      // prioritize base on high ratings
       if (favoriteGenres!.isNotEmpty) {
         for (String genre in favoriteGenres) {
           final response = await http.get(Uri.parse(
               "$baseUrl$genre&startIndex=${currentPage * pageSize}&maxResults=$pageSize"));
-          print("Fetching books for genre: $genre, Response: ${response.body}");
           if (response.statusCode == 200) {
             final data = json.decode(response.body);
             fetchedBooks.addAll(data['items'] ?? []);
@@ -128,6 +129,9 @@ class _HomePageState extends State<HomePage>
           books.addAll(fetchedBooks);
         } else {
           books = fetchedBooks;
+          if (originalBooks.isEmpty) {
+            originalBooks = List.from(books);
+          }
         }
         currentPage++;
       });
@@ -143,7 +147,14 @@ class _HomePageState extends State<HomePage>
     }
   }
 
+  // search books
   Future<void> searchBooks(String query) async {
+    FocusScope.of(context).unfocus();
+    setState(() {
+      isSearching = true;
+      isLoading = true;
+    });
+
     final response = await http.get(
       Uri.parse(
           "https://www.googleapis.com/books/v1/volumes?q=$query&maxResults=20"),
@@ -154,12 +165,20 @@ class _HomePageState extends State<HomePage>
         books = json.decode(response.body)['items'];
       });
     } else {
-      throw Exception('Failed to load books');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: Failed to load books')),
+      );
     }
+
+    setState(() {
+      isLoading = false;
+    });
   }
 
   void _onScroll() {
-    if (_scrollController.position.extentAfter < 100 && !isFetchingMore) {
+    if (!isSearching &&
+        _scrollController.position.extentAfter < 100 &&
+        !isFetchingMore) {
       fetchRecommendedBooks(loadMore: true);
     }
   }
@@ -168,20 +187,15 @@ class _HomePageState extends State<HomePage>
   Widget build(BuildContext context) {
     super.build(context);
 
-    if (isLoading) {
-      // loading animation
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('Book Review App'),
-        ),
-        body: Padding(
+      appBar: AppBar(
+        title: const Text('Book Review App'),
+      ),
+      body: GestureDetector(
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12.0),
           child: Column(
             children: [
@@ -208,13 +222,25 @@ class _HomePageState extends State<HomePage>
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
                         vertical: 14.0, horizontal: 20.0),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.search),
-                      onPressed: () {
-                        searchBooks(searchController.text);
-                      },
-                    ),
+                    suffixIcon: isSearching
+                        ? IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () {
+                              setState(() {
+                                isSearching = false;
+                                searchController.clear();
+                                books = List.from(originalBooks);
+                              });
+                            },
+                          )
+                        : IconButton(
+                            icon: const Icon(Icons.search),
+                            onPressed: () {
+                              searchBooks(searchController.text);
+                            },
+                          ),
                   ),
+                  onSubmitted: (query) => searchBooks(query),
                 ),
               ),
               const SizedBox(
@@ -330,13 +356,10 @@ class _HomePageState extends State<HomePage>
                   ],
                 ),
               ),
-              // loading animation
-              if (isLoading)
-                const Center(
-                  child: CircularProgressIndicator(),
-                ),
             ],
           ),
-        ));
+        ),
+      ),
+    );
   }
 }
