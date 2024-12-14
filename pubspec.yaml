@@ -41,7 +41,8 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-
+  barcode_scan2: ^4.3.3
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -67,6 +68,31 @@ flutter:
   assets:
     - assets/welcome.mp4
     - assets/images/logo.png
+    - assets/images/Fiction.jpg
+    - assets/images/Fantasy.jpg
+    - assets/images/Science Fiction.jpg
+    - assets/images/Mystery.jpg
+    - assets/images/Romance.jpeg
+    - assets/images/Horror.jpeg
+    - assets/images/Biography.jpg
+    - assets/images/History.jpg
+    - assets/images/Poetry.jpg
+    - assets/images/Adventure.jpg
+    - assets/images/Children.jpeg
+    - assets/images/Travel.jpg
+    - assets/images/Cooking.jpeg
+    - assets/images/Religion.jpg
+    - assets/images/Art.jpg
+    - assets/images/Health.jpeg
+    - assets/images/Business.jpeg
+    - assets/images/Technology.jpg
+    - assets/images/Education.jpeg
+    - assets/images/Drama.jpeg
+    - assets/images/Philosophy.jpeg
+    - assets/images/Science.jpeg
+    - assets/images/Sports.jpg
+    - assets/images/Politics.jpg
+    - assets/images/Economics.jpg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
