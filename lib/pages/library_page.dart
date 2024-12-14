@@ -123,7 +123,7 @@ class _LibraryPageState extends State<LibraryPage>
           controller: _tabController,
           tabs: const [
             Tab(text: 'Read'),
-            Tab(text: 'Currently Reading'),
+            Tab(text: 'Reading'),
             Tab(text: 'Want to Read'),
           ],
         ),
