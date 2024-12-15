@@ -95,10 +95,10 @@ The app leverages two key strategies for recommendations:
 
 ## Screenshots 📸
 
-![alt text](splash.gif)
-![alt text](home.gif)
-![alt text](home2.gif)
-![alt text](library.gif)
-![alt text](profile.gif)
-![alt text](<sign up.gif>)
-![alt text](untitled.gif)
+![Demo GIF](assets/demo/splash.gif)
+![Demo GIF](assets/demo/home.gif)
+![Demo GIF](assets/demo/home2.gif)
+![Demo GIF](assets/demo/library.gif)
+![Demo GIF](assets/demo/profile.gif)
+![Demo GIF](assets/demo/sign_up.gif)
+![Demo GIF](assets/demo/untitled.gif)
