@@ -49,31 +49,60 @@ class _HomePageState extends State<HomePage>
       return {"preferences": [], "favoriteGenres": []};
     }
 
-    // preferences
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .get();
-    List<String> preferences = [];
-    if (userDoc.exists && userDoc.data() != null) {
-      preferences = List<String>.from(userDoc.data()!['preferences'] ?? []);
+    try {
+      // Fetch user preferences
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      List<String> preferences = [];
+      if (userDoc.exists && userDoc.data() != null) {
+        preferences = List<String>.from(userDoc.data()!['preferences'] ?? []);
+      }
+
+      // Fetch user high-rated books and dynamically get genres using bookId
+      final reviewsQuery = await FirebaseFirestore.instance
+          .collection('reviews')
+          .where('userId', isEqualTo: user.uid)
+          .where('rating', isGreaterThanOrEqualTo: 4)
+          .get();
+
+      Set<String> favoriteGenres = {};
+
+      for (var review in reviewsQuery.docs) {
+        final bookId = review.data()['bookId'];
+        if (bookId != null) {
+          final genres = await fetchGenreFromGoogleBooks(bookId);
+          if (genres.isNotEmpty) {
+            favoriteGenres.addAll(genres);
+          }
+        }
+      }
+
+      return {
+        "preferences": preferences,
+        "favoriteGenres": favoriteGenres.toList(),
+      };
+    } catch (e) {
+      return {"preferences": [], "favoriteGenres": []};
     }
+  }
 
-    // ratings
-    final reviewsQuery = await FirebaseFirestore.instance
-        .collection('reviews')
-        .where('userId', isEqualTo: user.uid)
-        .where('rating', isGreaterThanOrEqualTo: 4)
-        .get();
-    final favoriteGenres = reviewsQuery.docs
-        .expand((doc) {
-          final genre = doc.data()['genre'] as String;
-          return genre.split('/').map((g) => g.trim());
-        })
-        .toSet()
-        .toList();
-
-    return {"preferences": preferences, "favoriteGenres": favoriteGenres};
+  Future<List<String>> fetchGenreFromGoogleBooks(String bookId) async {
+    const baseUrl = "https://www.googleapis.com/books/v1/volumes";
+    try {
+      final response = await http.get(Uri.parse("$baseUrl/$bookId"));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final categories =
+            data['volumeInfo']?['categories'] as List<dynamic>? ?? [];
+        return categories.map((category) => category.toString()).toList();
+      }
+    } catch (e) {
+      print('Error fetching genre for bookId $bookId: $e');
+    }
+    return [];
   }
 
   // get recommand books
@@ -91,36 +120,56 @@ class _HomePageState extends State<HomePage>
     }
 
     try {
-      // recommand books according to preferences and ratings
       final userData = await fetchUserPreferencesAndReviews();
       final preferences = userData['preferences'];
       final favoriteGenres = userData['favoriteGenres'];
 
       const baseUrl = "https://www.googleapis.com/books/v1/volumes?q=subject:";
-
       List<dynamic> fetchedBooks = [];
 
-      // prioritize base on high ratings
       if (favoriteGenres!.isNotEmpty) {
-        for (String genre in favoriteGenres) {
+        final simplifiedGenres = favoriteGenres
+            .map((genre) => genre.split('/').first.trim())
+            .toSet();
+
+        for (String genre in simplifiedGenres) {
           final response = await http.get(Uri.parse(
               "$baseUrl$genre&startIndex=${currentPage * pageSize}&maxResults=$pageSize"));
+
           if (response.statusCode == 200) {
             final data = json.decode(response.body);
             fetchedBooks.addAll(data['items'] ?? []);
+          } else {
+            print('Failed to fetch books for genre: $genre');
           }
         }
       }
 
-      // base on preferences secondly
+      // preferences
       if (preferences!.isNotEmpty) {
         for (String preference in preferences) {
           final response = await http.get(Uri.parse(
               "$baseUrl$preference&startIndex=${currentPage * pageSize}&maxResults=$pageSize"));
+
           if (response.statusCode == 200) {
             final data = json.decode(response.body);
+            print(
+                'Books fetched for $preference: ${data['items']?.length ?? 0}');
             fetchedBooks.addAll(data['items'] ?? []);
+          } else {
+            print('Failed to fetch books for preference: $preference');
           }
+        }
+      }
+
+      // if not references
+      if (fetchedBooks.isEmpty) {
+        final response = await http.get(Uri.parse(
+            "$baseUrl+Fiction&startIndex=${currentPage * pageSize}&maxResults=$pageSize"));
+
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          fetchedBooks.addAll(data['items'] ?? []);
         }
       }
 
