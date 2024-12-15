@@ -45,6 +45,10 @@ YouTube Link:
    - Display and manage user information like username and preferences.
    - Features for changing passwords and logging out.
 
+8. **Explore Page**
+   - Display every main book genre and popular books within them.
+   - ISBN barcode scanner for book identification.
+
 ## Personalized Book Recommendations 📖✨
 
 The app leverages two key strategies for recommendations:
