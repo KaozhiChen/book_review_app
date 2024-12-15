@@ -95,16 +95,6 @@ The app leverages two key strategies for recommendations:
 
 ## Screenshots 📸
 
-<!-- ![Demo GIF](assets/demo/splash.gif)
-![Demo GIF](assets/demo/home.gif)
-![Demo GIF](assets/demo/home2.gif)
-![Demo GIF](assets/demo/library.gif)
-![Demo GIF](assets/demo/profile.gif)
-![Demo GIF](assets/demo/sign_up.gif)
-![Demo GIF](assets/demo/untitled.gif) -->
-
-## Screenshots 📸
-
 <p align="center">
   <img src="assets/demo/splash.gif" alt="Splash Page" width="200">
   <img src="assets/demo/home.gif" alt="Home Page" width="200">
