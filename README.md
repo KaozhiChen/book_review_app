@@ -2,13 +2,9 @@
 
 This is a feature-rich Flutter application designed to provide a seamless experience for book lovers. The app allows users to discover, review, rate, and manage books, while also offering personalized recommendations based on their preferences and activities.
 
----
-
 ## Presentation
 
 YouTube Link:
-
----
 
 ## Features 🚀
 
@@ -49,8 +45,6 @@ YouTube Link:
    - Display and manage user information like username and preferences.
    - Features for changing passwords and logging out.
 
----
-
 ## Personalized Book Recommendations 📖✨
 
 The app leverages two key strategies for recommendations:
@@ -59,8 +53,6 @@ The app leverages two key strategies for recommendations:
    Books with ratings of 4 stars and above are prioritized, and recommendations are based on the genres of these high-rated books.
 2. **Preference-Based Recommendations**  
    Suggestions are tailored to the genres selected by the user during the sign-up process.
-
----
 
 ## Tech Stack 💻
 
@@ -73,8 +65,6 @@ The app leverages two key strategies for recommendations:
 
 - **APIs**:
   - Google Books API: Fetch book data, including metadata like title, author, and cover image.
-
----
 
 ## How to Run the Project 🛠️
 
@@ -90,8 +80,6 @@ The app leverages two key strategies for recommendations:
    ```bash
    flutter run
    ```
-
----
 
 ## Screenshots 📸
 
