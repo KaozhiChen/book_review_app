@@ -88,11 +88,11 @@ The app leverages two key strategies for recommendations:
 ## Screenshots 📸
 
 <p align="center">
-  <img src="assets/demo/splash.gif" alt="Splash Page" width="200">
-  <img src="assets/demo/home.gif" alt="Home Page" width="200">
-  <img src="assets/demo/home2.gif" alt="Home Page (Scrolling)" width="200">
-  <img src="assets/demo/library.gif" alt="Library Page" width="200">
-  <img src="assets/demo/profile.gif" alt="Profile Page" width="200">
-  <img src="assets/demo/sign_up.gif" alt="Sign Up Page" width="200">
-  <img src="assets/demo/untitled.gif" alt="Miscellaneous" width="200">
+  <img src="assets/demo/splash.gif" alt="Splash Page" width="200">&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="assets/demo/home.gif" alt="Home Page" width="200">&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="assets/demo/home2.gif" alt="Home Page (Scrolling)" width="200">&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="assets/demo/library.gif" alt="Library Page" width="200">&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="assets/demo/profile.gif" alt="Profile Page" width="200">&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="assets/demo/sign_up.gif" alt="Sign Up Page" width="200">&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="assets/demo/untitled.gif" alt="Miscellaneous" width="200">&nbsp;&nbsp;&nbsp;&nbsp;
 </p>
